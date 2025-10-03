@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Plataforma LeRunners</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .view { display: none; }
+        .athlete-card {
+            background-color: white; border-radius: 12px; padding: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .athlete-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+        }
+        .news-card {
+            background-color: #f3f4f6; border-radius: 12px; padding: 1.5rem;
+            box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+        }
+        .comment-box {
+            border: 1px solid #e5e7eb; border-radius: 8px; padding: 1rem; margin-top: 1rem;
+        }
+        .comment-item {
+            padding: 0.5rem; border-bottom: 1px solid #e5e7eb;
+        }
+        .chart-container {
+            height: 300px; background: white; border-radius: 12px; padding: 1rem; box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+        }
+        .vitrine-item {
+            background: white; border-radius: 8px; padding: 1rem; margin-bottom: 1rem;
+            box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+        }
+        .vitrine-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 0.5rem;
+        }
+        .vitrine-actions {
+            margin-top: 0.5rem;
+            display: flex; gap: 0.5rem;
+        }
+    </style>
+</head>
+<body class="dashboard-page">
+    <header class="dashboard-header">
+        <div class="header-content">
+            <div class="header-left">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="logo"><path d="M13.633 3.13306C12.7831 1.70772 11.2169 1.70772 10.367 3.13306L3.13296 15.3671C2.28306 16.7924 3.06617 18.75 4.7659 18.75H19.2341C20.9338 18.75 21.7169 16.7924 20.867 15.3671L13.633 3.13306Z" stroke="#60a5fa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <h1>LeRunners</h1>
+            </div>
+            <div class="header-right">
+                <span id="user-name">Carregando...</span>
+                <button id="logout-btn" class="logout-btn">Sair</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="dashboard-main" style="grid-template-columns: 1fr; max-width: 1400px;">
+        <!-- Container Geral da Visão do Professor -->
+        <div id="professor-view" class="view">
+            <!-- VISTA 1: Hub de Atletas (Visão Macro) -->
+            <div id="hub-sub-view">
+                <div class="section-header" style="align-items: flex-start;">
+                    <div>
+                        <h2 class="text-3xl font-bold">Hub de Atletas</h2>
+                        <p class="text-gray-500">Gestão e acompanhamento da sua equipa.</p>
+                    </div>
+                    <button id="show-add-athlete-form-btn" class="form-button" style="width: auto; padding: 0.75rem 1.5rem;">+ Adicionar Aluno</button>
+                </div>
+                <div id="add-athlete-container" class="form-container mb-8" style="display: none; max-width: 500px; margin-left: auto; margin-right: auto;">
+                     <h3 class="text-xl font-bold mb-4">Cadastrar Novo Aluno</h3>
+                     <form id="add-athlete-form">
+                         <input type="text" id="athlete-name" class="form-input" required placeholder="Nome do Aluno">
+                         <input type="text" id="athlete-password" class="form-input mt-4" required placeholder="Senha Provisória">
+                         <div class="flex gap-4 mt-4">
+                            <button type="button" id="cancel-add-athlete-btn" class="form-button" style="background: #6b7280;">Cancelar</button>
+                            <button type="submit" class="form-button">Confirmar Cadastro</button>
+                         </div>
+                     </form>
+                </div>
+                <div id="athlete-grid-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
+            </div>
+            <!-- VISTA 2: Painel de Gestão Individual (Visão Micro, começa oculta) -->
+            <div id="management-sub-view" style="display: none;">
+                <div class="section-header">
+                    <button id="back-to-hub-btn" class="form-button" style="background: #6b7280; width: auto; padding: 0.5rem 1rem;">&larr; Voltar ao Hub</button>
+                    <h2 id="management-athlete-name" class="text-3xl font-bold"></h2>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+                    <div class="lg:col-span-2 space-y-6">
+                        <div class="athlete-card">
+                            <h3 class="text-xl font-bold">Prescrever Novo Treino</h3>
+                            <form id="prescribe-training-form" class="mt-4 space-y-4">
+                                <input type="date" id="training-date" class="form-input" required>
+                                <select id="training-type" class="form-input" required>
+                                    <option value="">Selecione o tipo de treino...</option>
+                                    <option value="Rodagem Leve">Rodagem Leve (Z1/Z2)</option>
+                                    <option value="Longo">Longo (Z2)</option>
+                                    <option value="Intervalado">Intervalado (Tiros)</option>
+                                    <option value="Fartlek">Fartlek</option>
+                                    <option value="Tempo Run">Tempo Run (Ritmo)</option>
+                                </select>
+                                <textarea id="training-description" class="form-input" rows="4" placeholder="Descreva o treino." required></textarea>
+                                <button type="submit" class="form-button">Agendar Treino</button>
+                            </form>
+                        </div>
+                        <div class="athlete-card">
+                            <h3 class="text-xl font-bold">Plano de Treino</h3>
+                            <div id="training-plan-list" class="mt-4 space-y-3"></div>
+                        </div>
+                        <div class="athlete-card">
+                            <h3 class="text-xl font-bold">Provas Oficiais</h3>
+                            <form id="add-race-form" class="mt-4 space-y-4">
+                                <input type="text" id="race-name" class="form-input" required placeholder="Nome da Prova">
+                                <input type="date" id="race-date" class="form-input" required>
+                                <input type="text" id="race-result" class="form-input" placeholder="Resultado (ex: 00:22:30)">
+                                <button type="submit" class="form-button">Registrar Prova</button>
+                            </form>
+                            <div id="races-list" class="mt-4 space-y-3"></div>
+                        </div>
+                        <div class="athlete-card">
+                            <h3 class="text-xl font-bold">Gráfico de Desempenho</h3>
+                            <div class="chart-container" id="performance-chart">
+                                <p class="text-center text-gray-500">Carregando gráfico...</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="space-y-6">
+                        <div class="athlete-card">
+                            <h3 class="text-xl font-bold">Perfil do Atleta</h3>
+                            <form id="athlete-profile-form" class="mt-4 space-y-4">
+                                <label class="form-label">Meta Principal</label>
+                                <input type="text" id="athlete-goal" class="form-input" placeholder="Ex: Correr a Maratona de SP">
+                                <label class="form-label">Recorde Pessoal (RP) 5km</label>
+                                <input type="text" id="athlete-rp-5k" class="form-input" placeholder="Ex: 00:24:30">
+                                <button type="submit" class="form-button">Salvar Perfil</button>
+                            </form>
+                        </div>
+                        <div class="athlete-card">
+                            <h3 class="text-xl font-bold">Sugestões Inteligentes</h3>
+                            <div id="smart-suggestions" class="mt-4 space-y-3">
+                                <p class="text-gray-500">Analisando desempenho...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Container Geral da Visão do Atleta -->
+        <div id="atleta-view" class="view">
+             <div class="section-header">
+                <h2 class="text-3xl font-bold">Meu Painel</h2>
+             </div>
+             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+                <div class="lg:col-span-2 space-y-6">
+                    <div class="athlete-card">
+                        <h3 class="text-xl font-bold">Treinos Agendados</h3>
+                        <div id="my-training-plan-list" class="mt-4 space-y-3"></div>
+                    </div>
+                    <div class="athlete-card">
+                        <h3 class="text-xl font-bold">Minhas Provas</h3>
+                        <div id="my-races-list" class="mt-4 space-y-3"></div>
+                    </div>
+                    <div class="athlete-card">
+                        <h3 class="text-xl font-bold">Gráfico de Desempenho</h3>
+                        <div class="chart-container" id="my-performance-chart">
+                            <p class="text-center text-gray-500">Carregando gráfico...</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="space-y-6">
+                    <div class="athlete-card">
+                        <h3 class="text-xl font-bold">Meu Perfil</h3>
+                        <form id="my-profile-form" class="mt-4 space-y-4">
+                            <label class="form-label">Meta Principal</label>
+                            <input type="text" id="my-goal" class="form-input" placeholder="Ex: Correr a Maratona de SP">
+                            <label class="form-label">Recorde Pessoal (RP) 5km</label>
+                            <input type="text" id="my-rp-5k" class="form-input" placeholder="Ex: 00:24:30">
+                            <button type="submit" class="form-button">Salvar Perfil</button>
+                        </form>
+                    </div>
+                    <div class="athlete-card">
+                        <h3 class="text-xl font-bold">Comentários da Equipe</h3>
+                        <div id="comments-section" class="mt-4 space-y-3">
+                            <textarea id="new-comment" class="form-input" rows="2" placeholder="Deixe seu comentário..."></textarea>
+                            <button type="button" id="post-comment-btn" class="form-button">Enviar Comentário</button>
+                            <div id="comments-list" class="comment-box mt-2"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Container Geral da Visão de Notícias -->
+        <div id="news-view" class="view">
+             <div class="section-header">
+                <h2 class="text-3xl font-bold">Notícias da Equipe</h2>
+             </div>
+             <div class="grid grid-cols-1 gap-6 mt-6">
+                <div class="news-card">
+                    <h3 class="text-xl font-bold">Últimas Notícias</h3>
+                    <div id="news-list" class="mt-4 space-y-3"></div>
+                </div>
+                <div class="news-card">
+                    <h3 class="text-xl font-bold">Calendário de Provas</h3>
+                    <div id="calendar-list" class="mt-4 space-y-3"></div>
+                </div>
+                <div class="news-card">
+                    <h3 class="text-xl font-bold">Vitrine da Equipe</h3>
+                    <div id="vitrine-list" class="mt-4 space-y-3"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- SDKs do Firebase (v8) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    
+    <!-- Scripts da Aplicação -->
+    <script src="js/config.js"></script>
+    <script src="js/dashboard.js"></script>
+</body>
+</html>
