@@ -4,36 +4,40 @@ document.addEventListener('DOMContentLoaded', function () {
     const logoutBtn = document.getElementById('logout-btn');
     const professorView = document.getElementById('professor-view');
     const atletaView = document.getElementById('atleta-view');
-    const newsView = document.getElementById('news-view');
+    
+    // Sub-views Professor
     const hubSubView = document.getElementById('hub-sub-view');
     const managementSubView = document.getElementById('management-sub-view');
+    const backToHubBtn = document.getElementById('back-to-hub-btn');
+    const managementAthleteName = document.getElementById('management-athlete-name');
+    
+    // Formulário Add Aluno
     const showAddAthleteBtn = document.getElementById('show-add-athlete-form-btn');
     const addAthleteContainer = document.getElementById('add-athlete-container');
     const cancelAddAthleteBtn = document.getElementById('cancel-add-athlete-btn');
     const addAthleteForm = document.getElementById('add-athlete-form');
     const athleteGridContainer = document.getElementById('athlete-grid-container');
-    const backToHubBtn = document.getElementById('back-to-hub-btn');
-    const managementAthleteName = document.getElementById('management-athlete-name');
+
+    // Painel de Gestão
     const prescribeTrainingForm = document.getElementById('prescribe-training-form');
     const trainingPlanList = document.getElementById('training-plan-list');
     const athleteProfileForm = document.getElementById('athlete-profile-form');
+
+    // Painel do Atleta
     const myTrainingPlanList = document.getElementById('my-training-plan-list');
     const myProfileForm = document.getElementById('my-profile-form');
-    const addRaceForm = document.getElementById('add-race-form');
-    const racesList = document.getElementById('races-list');
-    const myRacesList = document.getElementById('my-races-list');
-    const performanceChart = document.getElementById('performance-chart');
-    const myPerformanceChart = document.getElementById('my-performance-chart');
-    const smartSuggestions = document.getElementById('smart-suggestions');
-    const newsList = document.getElementById('news-list');
-    const calendarList = document.getElementById('calendar-list');
-    const vitrineList = document.getElementById('vitrine-list');
-    const commentsSection = document.getElementById('comments-section');
-    const newCommentInput = document.getElementById('new-comment');
-    const postCommentBtn = document.getElementById('post-comment-btn');
-    const commentsList = document.getElementById('comments-list');
 
+    // Modal de Feedback
+    const feedbackModal = document.getElementById('feedback-modal');
+    const closeFeedbackModalBtn = document.getElementById('close-feedback-modal');
+    const feedbackTrainingDetails = document.getElementById('feedback-training-details');
+    const feedbackHistory = document.getElementById('feedback-history');
+    const feedbackForm = document.getElementById('feedback-form');
+
+    // Variáveis de estado
     let currentManagingAthleteId = null;
+    let currentFeedbackTrainingId = null;
+    let currentUser = null;
 
     // --- Lógica Principal de Inicialização ---
     function checkSessionAndInitialize() {
@@ -42,8 +46,8 @@ document.addEventListener('DOMContentLoaded', function () {
             window.location.href = 'index.html';
             return;
         }
-        const sessionData = JSON.parse(sessionDataString);
-        initializeDashboard(sessionData);
+        currentUser = JSON.parse(sessionDataString);
+        initializeDashboard(currentUser);
     }
 
     function initializeDashboard(userData) {
@@ -53,28 +57,17 @@ document.addEventListener('DOMContentLoaded', function () {
             showProfessorSubView('hub');
             setupProfessorEventListeners();
             loadAthletesGrid();
-            loadNews();
-            loadCalendar();
-            loadVitrine();
-        } else {
+        } else if (userData.role === 'atleta') {
             atletaView.style.display = 'block';
             loadAthleteDashboard(userData.atletaId);
-            loadNews();
-            loadCalendar();
-            loadVitrine();
         }
     }
 
     function showProfessorSubView(subViewName) {
-        if (subViewName === 'hub') {
-            hubSubView.style.display = 'block';
-            managementSubView.style.display = 'none';
-        } else if (subViewName === 'management') {
-            hubSubView.style.display = 'none';
-            managementSubView.style.display = 'block';
-        }
+        hubSubView.style.display = subViewName === 'hub' ? 'block' : 'none';
+        managementSubView.style.display = subViewName === 'management' ? 'block' : 'none';
     }
-
+    
     // --- Funções do Professor ---
     function setupProfessorEventListeners() {
         showAddAthleteBtn.addEventListener('click', () => {
@@ -89,17 +82,24 @@ document.addEventListener('DOMContentLoaded', function () {
         });
 
         addAthleteForm.addEventListener('submit', handleAddAthlete);
-
-        backToHubBtn.addEventListener('click', () => {
-            showProfessorSubView('hub');
-            currentManagingAthleteId = null;
-        });
+        backToHubBtn.addEventListener('click', () => showProfessorSubView('hub'));
 
         athleteGridContainer.addEventListener('click', (e) => {
             const manageButton = e.target.closest('.manage-athlete-btn');
             if (manageButton) {
-                const athleteId = manageButton.dataset.atletaId;
-                openManagementPanel(athleteId);
+                openManagementPanel(manageButton.dataset.atletaId);
+            }
+        });
+        
+        prescribeTrainingForm.addEventListener('submit', handlePrescribeTraining);
+        athleteProfileForm.addEventListener('submit', handleUpdateProfile);
+
+        // Listeners do Modal de Feedback
+        closeFeedbackModalBtn.addEventListener('click', () => feedbackModal.style.display = 'none');
+        feedbackForm.addEventListener('submit', handlePostFeedback);
+        window.addEventListener('click', (event) => {
+            if (event.target == feedbackModal) {
+                feedbackModal.style.display = 'none';
             }
         });
     }
@@ -117,21 +117,16 @@ document.addEventListener('DOMContentLoaded', function () {
             const athleteKey = newLoginRef.key;
             await database.ref('atletas/' + athleteKey).set({
                 nome: name,
-                perfil: { objetivo: 'Não definido', rp5k: '' },
-                plano_treino: {},
-                provas: {},
-                comentarios: {},
-                atividades_strava: {}
+                perfil: { objetivo: 'Não definido', rp5k: '' }
             });
 
             alert(`Atleta '${name}' cadastrado com sucesso!`);
             addAthleteForm.reset();
-            addAthleteContainer.style.display = 'none';
-            showAddAthleteBtn.style.display = 'block';
-            loadAthletesGrid(); // Atualiza a lista imediatamente
+            cancelAddAthleteBtn.click();
+            loadAthletesGrid();
         } catch (error) {
             console.error("Erro ao cadastrar atleta:", error);
-            alert("Falha ao cadastrar atleta. Verifique o console para detalhes.");
+            alert("Falha ao cadastrar atleta.");
         }
     }
 
@@ -145,23 +140,20 @@ document.addEventListener('DOMContentLoaded', function () {
                     const atletaId = childSnapshot.key;
                     athleteGridContainer.innerHTML += `
                         <div class="athlete-card">
-                            <h3 class="font-bold text-xl text-gray-800">${atleta.nome}</h3>
-                            <div class="mt-4 space-y-2 text-sm text-gray-600">
-                                <p><strong>Objetivo:</strong> ${atleta.perfil.objetivo || 'Não definido'}</p>
-                                <p><strong>RP 5km:</strong> ${atleta.perfil.rp5k || 'N/A'}</p>
-                            </div>
-                            <div class="mt-6 text-right">
-                                <button data-atleta-id="${atletaId}" class="form-button manage-athlete-btn" style="width: auto; padding: 0.5rem 1rem;">Gerir Atleta</button>
+                            <h3 class="font-bold text-xl">${atleta.nome}</h3>
+                            <p class="text-sm text-gray-600 mt-2"><strong>Objetivo:</strong> ${atleta.perfil?.objetivo || 'Não definido'}</p>
+                            <div class="mt-4 text-right">
+                                <button data-atleta-id="${atletaId}" class="form-button manage-athlete-btn">Gerir Atleta</button>
                             </div>
                         </div>
                     `;
                 });
             } else {
-                athleteGridContainer.innerHTML = '<p class="text-gray-500 col-span-full text-center">Nenhum atleta cadastrado. Clique em "+ Adicionar Aluno" para começar.</p>';
+                athleteGridContainer.innerHTML = '<p>Nenhum atleta cadastrado.</p>';
             }
         });
     }
-
+    
     // --- Funções do Painel de Gestão Individual ---
     function openManagementPanel(athleteId) {
         currentManagingAthleteId = athleteId;
@@ -172,44 +164,51 @@ document.addEventListener('DOMContentLoaded', function () {
             if (!snapshot.exists()) return;
             const atleta = snapshot.val();
             managementAthleteName.textContent = `Gerindo: ${atleta.nome}`;
-            loadProfileData(atleta.perfil);
-            loadTrainingPlan(athleteId);
-            loadRaces(athleteId);
-            loadPerformanceChart(athleteId);
-            loadSmartSuggestions(athleteId);
-
-            prescribeTrainingForm.onsubmit = (e) => handlePrescribeTraining(e);
-            athleteProfileForm.onsubmit = (e) => handleUpdateProfile(e);
-            addRaceForm.onsubmit = (e) => handleAddRace(e, athleteId);
+            loadProfileDataForProfessor(atleta.perfil);
+            loadTrainingPlanForProfessor(athleteId);
         });
     }
 
-    function loadProfileData(perfil) {
-        if (!perfil) return;
-        document.getElementById('athlete-goal').value = perfil.objetivo || '';
-        document.getElementById('athlete-rp-5k').value = perfil.rp5k || '';
+    function loadProfileDataForProfessor(perfil) {
+        document.getElementById('athlete-goal').value = perfil?.objetivo || '';
+        document.getElementById('athlete-rp-5k').value = perfil?.rp5k || '';
     }
 
-    function loadTrainingPlan(athleteId) {
+    function loadTrainingPlanForProfessor(athleteId) {
         const planRef = database.ref(`atletas/${athleteId}/plano_treino`).orderByChild('data');
         planRef.on('value', (snapshot) => {
             trainingPlanList.innerHTML = '';
             if (snapshot.exists()) {
                 snapshot.forEach(childSnapshot => {
                     const treino = childSnapshot.val();
+                    const treinoId = childSnapshot.key;
+                    const statusClass = treino.status === 'realizado' ? 'status-realizado' : 'status-agendado';
+                    const statusText = treino.status === 'realizado' ? 'Realizado' : 'Agendado';
+                    
                     trainingPlanList.innerHTML += `
-                        <div class="p-3 bg-gray-100 rounded">
-                            <p><strong>${new Date(treino.data + 'T03:00:00Z').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit' })}:</strong> ${treino.tipo}</p>
-                            <p class="text-sm text-gray-600">${treino.descricao}</p>
+                        <div class="training-item ${statusClass}">
+                            <div>
+                                <p><strong>${new Date(treino.data + 'T03:00:00').toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit' })}:</strong> ${treino.tipo}</p>
+                                <p class="text-sm text-gray-600">${treino.descricao}</p>
+                            </div>
+                            <div>
+                                <span class="text-sm font-bold mr-4">${statusText}</span>
+                                <button data-treino-id="${treinoId}" data-treino-details="${treino.tipo} em ${treino.data}" class="feedback-btn form-button" style="width: auto; padding: 0.25rem 0.75rem;">Feedback</button>
+                            </div>
                         </div>
                     `;
                 });
+
+                document.querySelectorAll('.feedback-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => openFeedbackModal(e.currentTarget.dataset));
+                });
+
             } else {
-                trainingPlanList.innerHTML = '<p class="text-gray-500">Nenhum treino agendado.</p>';
+                trainingPlanList.innerHTML = '<p>Nenhum treino agendado.</p>';
             }
         });
     }
-
+    
     async function handlePrescribeTraining(e) {
         e.preventDefault();
         if (!currentManagingAthleteId) return;
@@ -225,10 +224,9 @@ document.addEventListener('DOMContentLoaded', function () {
             await database.ref(`atletas/${currentManagingAthleteId}/plano_treino`).push().set(newTraining);
             alert('Treino agendado com sucesso!');
             prescribeTrainingForm.reset();
-            loadTrainingPlan(currentManagingAthleteId); // Atualiza a lista
         } catch (error) {
             console.error("Erro ao agendar treino:", error);
-            alert('Falha ao agendar treino. Verifique o console.');
+            alert('Falha ao agendar treino.');
         }
     }
 
@@ -244,70 +242,51 @@ document.addEventListener('DOMContentLoaded', function () {
         try {
             await database.ref(`atletas/${currentManagingAthleteId}/perfil`).update(updatedProfile);
             alert('Perfil do atleta atualizado com sucesso!');
-            loadProfileData(updatedProfile); // Atualiza visualmente
         } catch (error) {
             console.error("Erro ao atualizar perfil:", error);
-            alert('Falha ao atualizar perfil. Verifique o console.');
+            alert('Falha ao atualizar perfil.');
         }
     }
 
-    function loadRaces(athleteId) {
-        const racesRef = database.ref(`atletas/${athleteId}/provas`);
-        racesRef.on('value', (snapshot) => {
-            racesList.innerHTML = '';
-            if (snapshot.exists()) {
-                snapshot.forEach(childSnapshot => {
-                    const prova = childSnapshot.val();
-                    racesList.innerHTML += `
-                        <div class="p-3 bg-gray-100 rounded">
-                            <p><strong>${prova.nome}</strong> - ${new Date(prova.data + 'T03:00:00Z').toLocaleDateString('pt-BR')}</p>
-                            <p class="text-sm text-gray-600">Resultado: ${prova.resultado || 'N/A'}</p>
-                        </div>
-                    `;
+    // --- Funções de Feedback (Professor) ---
+    function openFeedbackModal(dataset) {
+        currentFeedbackTrainingId = dataset.treinoId;
+        feedbackTrainingDetails.textContent = dataset.treinoDetails;
+        feedbackModal.style.display = 'flex';
+        feedbackHistory.innerHTML = 'Carregando feedbacks...';
+
+        const feedbackRef = database.ref(`atletas/${currentManagingAthleteId}/plano_treino/${currentFeedbackTrainingId}/feedback`);
+        feedbackRef.on('value', snapshot => {
+            feedbackHistory.innerHTML = '';
+            if(snapshot.exists()) {
+                snapshot.forEach(child => {
+                    const fb = child.val();
+                    feedbackHistory.innerHTML += `<p class="text-sm p-1"><strong>${fb.autor}:</strong> ${fb.texto}</p>`;
                 });
             } else {
-                racesList.innerHTML = '<p class="text-gray-500">Nenhuma prova registrada.</p>';
+                feedbackHistory.innerHTML = '<p class="text-sm text-gray-500">Nenhum feedback ainda.</p>';
             }
         });
     }
 
-    async function handleAddRace(e, athleteId) {
+    async function handlePostFeedback(e) {
         e.preventDefault();
-        const name = document.getElementById('race-name').value.trim();
-        const date = document.getElementById('race-date').value;
-        const result = document.getElementById('race-result').value.trim();
-        if (!name || !date) return;
+        const texto = document.getElementById('feedback-text').value.trim();
+        if (!texto || !currentManagingAthleteId || !currentFeedbackTrainingId) return;
+        
+        const newFeedback = {
+            autor: currentUser.name,
+            texto: texto,
+            timestamp: new Date().toISOString()
+        };
 
         try {
-            const newRaceRef = database.ref(`atletas/${athleteId}/provas`).push();
-            await newRaceRef.set({ nome: name, data: date, resultado: result });
-            alert('Prova registrada com sucesso!');
-            addRaceForm.reset();
-            loadRaces(athleteId);
+            await database.ref(`atletas/${currentManagingAthleteId}/plano_treino/${currentFeedbackTrainingId}/feedback`).push().set(newFeedback);
+            feedbackForm.reset();
         } catch (error) {
-            console.error("Erro ao registrar prova:", error);
-            alert('Falha ao registrar prova.');
+            console.error('Erro ao enviar feedback:', error);
+            alert('Falha ao enviar feedback.');
         }
-    }
-
-    function loadPerformanceChart(athleteId) {
-        const chartContainer = document.getElementById('performance-chart');
-        chartContainer.innerHTML = '<p class="text-center text-gray-500">Gráfico de desempenho em desenvolvimento...</p>';
-        // Aqui você pode integrar uma biblioteca como Chart.js no futuro
-    }
-
-    function loadSmartSuggestions(athleteId) {
-        const suggestionsContainer = document.getElementById('smart-suggestions');
-        suggestionsContainer.innerHTML = '<p class="text-gray-500">Analisando desempenho...</p>';
-
-        // Simulação de sugestão inteligente
-        setTimeout(() => {
-            suggestionsContainer.innerHTML = `
-                <div class="p-3 bg-blue-100 rounded">
-                    <p><strong>Sugestão Inteligente:</strong> Baseado no seu objetivo de correr meia maratona em 1h45, recomendamos aumentar a frequência de treinos intervalados nas próximas 4 semanas.</p>
-                </div>
-            `;
-        }, 1000);
     }
 
     // --- Funções do Atleta ---
@@ -318,26 +297,21 @@ document.addEventListener('DOMContentLoaded', function () {
             const atleta = snapshot.val();
             loadMyProfileData(atleta.perfil);
             loadMyTrainingPlan(athleteId);
-            loadMyRaces(athleteId);
-            loadMyPerformanceChart(athleteId);
-            loadComments(athleteId);
+        });
 
-            myProfileForm.onsubmit = (e) => handleUpdateMyProfile(e, athleteId);
-            document.addEventListener('click', (e) => {
-                const markDoneBtn = e.target.closest('.mark-as-done-btn');
-                if (markDoneBtn) {
-                    const treinoId = markDoneBtn.dataset.treinoId;
-                    updateTrainingStatus(athleteId, treinoId, 'realizado');
-                }
-            });
-            postCommentBtn.addEventListener('click', () => handlePostComment(athleteId));
+        myProfileForm.addEventListener('submit', (e) => handleUpdateMyProfile(e, athleteId));
+        
+        myTrainingPlanList.addEventListener('click', (e) => {
+            const markDoneBtn = e.target.closest('.mark-as-done-btn');
+            if (markDoneBtn) {
+                updateTrainingStatus(athleteId, markDoneBtn.dataset.treinoId, 'realizado');
+            }
         });
     }
 
     function loadMyProfileData(perfil) {
-        if (!perfil) return;
-        document.getElementById('my-goal').value = perfil.objetivo || '';
-        document.getElementById('my-rp-5k').value = perfil.rp5k || '';
+        document.getElementById('my-goal').value = perfil?.objetivo || '';
+        document.getElementById('my-rp-5k').value = perfil?.rp5k || '';
     }
 
     function loadMyTrainingPlan(athleteId) {
@@ -347,19 +321,33 @@ document.addEventListener('DOMContentLoaded', function () {
             if (snapshot.exists()) {
                 snapshot.forEach(childSnapshot => {
                     const treino = childSnapshot.val();
-                    const statusClass = treino.status === 'realizado' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800';
+                    const treinoId = childSnapshot.key;
+                    const isDone = treino.status === 'realizado';
+                    
+                    let feedbackHtml = '<div class="mt-2 text-xs text-gray-500">Nenhum feedback do treinador.</div>';
+                    if(treino.feedback) {
+                        feedbackHtml = '<div class="mt-2 text-xs bg-blue-50 p-2 rounded">';
+                        Object.values(treino.feedback).forEach(fb => {
+                            feedbackHtml += `<p><strong>${fb.autor}:</strong> ${fb.texto}</p>`;
+                        });
+                        feedbackHtml += '</div>';
+                    }
+
                     myTrainingPlanList.innerHTML += `
-                        <div class="p-3 ${statusClass} rounded flex justify-between items-center">
-                            <div>
-                                <p><strong>${new Date(treino.data + 'T03:00:00Z').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit' })}:</strong> ${treino.tipo}</p>
-                                <p class="text-sm text-gray-600">${treino.descricao}</p>
+                        <div class="p-3 rounded ${isDone ? 'bg-green-100' : 'bg-yellow-100'}">
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <p><strong>${new Date(treino.data + 'T03:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit' })}:</strong> ${treino.tipo}</p>
+                                    <p class="text-sm text-gray-700">${treino.descricao}</p>
+                                </div>
+                                ${!isDone ? `<button data-treino-id="${treinoId}" class="mark-as-done-btn form-button">Marcar como Feito</button>` : '<span class="font-bold text-green-700">Realizado</span>'}
                             </div>
-                            ${treino.status !== 'realizado' ? `<button data-treino-id="${childSnapshot.key}" class="mark-as-done-btn form-button" style="width: auto; padding: 0.25rem 0.5rem; font-size: 0.75rem;">Marcar como Feito</button>` : ''}
+                            ${feedbackHtml}
                         </div>
                     `;
                 });
             } else {
-                myTrainingPlanList.innerHTML = '<p class="text-gray-500">Nenhum treino agendado.</p>';
+                myTrainingPlanList.innerHTML = '<p>Nenhum treino agendado.</p>';
             }
         });
     }
@@ -376,150 +364,18 @@ document.addEventListener('DOMContentLoaded', function () {
             alert('Perfil atualizado com sucesso!');
         } catch (error) {
             console.error("Erro ao atualizar perfil:", error);
-            alert('Falha ao atualizar perfil. Verifique o console.');
+            alert('Falha ao atualizar perfil.');
         }
     }
-
-    function loadMyRaces(athleteId) {
-        const racesRef = database.ref(`atletas/${athleteId}/provas`);
-        racesRef.on('value', (snapshot) => {
-            myRacesList.innerHTML = '';
-            if (snapshot.exists()) {
-                snapshot.forEach(childSnapshot => {
-                    const prova = childSnapshot.val();
-                    myRacesList.innerHTML += `
-                        <div class="p-3 bg-gray-100 rounded">
-                            <p><strong>${prova.nome}</strong> - ${new Date(prova.data + 'T03:00:00Z').toLocaleDateString('pt-BR')}</p>
-                            <p class="text-sm text-gray-600">Resultado: ${prova.resultado || 'N/A'}</p>
-                        </div>
-                    `;
-                });
-            } else {
-                myRacesList.innerHTML = '<p class="text-gray-500">Nenhuma prova registrada.</p>';
-            }
-        });
-    }
-
-    function loadMyPerformanceChart(athleteId) {
-        const chartContainer = document.getElementById('my-performance-chart');
-        chartContainer.innerHTML = '<p class="text-center text-gray-500">Gráfico de desempenho em desenvolvimento...</p>';
-    }
-
-    function loadComments(athleteId) {
-        const commentsRef = database.ref(`atletas/${athleteId}/comentarios`);
-        commentsRef.on('value', (snapshot) => {
-            commentsList.innerHTML = '';
-            if (snapshot.exists()) {
-                snapshot.forEach(childSnapshot => {
-                    const comentario = childSnapshot.val();
-                    commentsList.innerHTML += `
-                        <div class="comment-item">
-                            <strong>${comentario.autor}:</strong> ${comentario.texto}
-                        </div>
-                    `;
-                });
-            } else {
-                commentsList.innerHTML = '<p class="text-gray-500">Nenhum comentário ainda.</p>';
-            }
-        });
-    }
-
-    async function handlePostComment(athleteId) {
-        const texto = newCommentInput.value.trim();
-        if (!texto) return;
-
-        const currentUser = JSON.parse(localStorage.getItem('currentUserSession'));
-        const autor = currentUser.name;
-
-        try {
-            const newCommentRef = database.ref(`atletas/${athleteId}/comentarios`).push();
-            await newCommentRef.set({ autor, texto, timestamp: Date.now() });
-            newCommentInput.value = '';
-            loadComments(athleteId);
-        } catch (error) {
-            console.error("Erro ao postar comentário:", error);
-            alert('Falha ao postar comentário.');
-        }
-    }
-
+    
     async function updateTrainingStatus(athleteId, trainingId, status) {
         try {
             await database.ref(`atletas/${athleteId}/plano_treino/${trainingId}`).update({ status });
             alert('Treino marcado como realizado!');
-            loadMyTrainingPlan(athleteId); // Atualiza a lista
         } catch (error) {
-            console.error("Erro ao marcar treino como feito:", error);
-            alert('Falha ao marcar treino como feito.');
+            console.error("Erro ao marcar treino:", error);
+            alert('Falha ao marcar treino.');
         }
-    }
-
-    // --- Funções de Notícias e Calendário ---
-    function loadNews() {
-        const newsRef = database.ref('noticias');
-        newsRef.on('value', (snapshot) => {
-            newsList.innerHTML = '';
-            if (snapshot.exists()) {
-                snapshot.forEach(childSnapshot => {
-                    const noticia = childSnapshot.val();
-                    newsList.innerHTML += `
-                        <div class="p-3 bg-gray-100 rounded">
-                            <p><strong>${noticia.titulo}</strong></p>
-                            <p class="text-sm text-gray-600">${noticia.conteudo}</p>
-                        </div>
-                    `;
-                });
-            } else {
-                newsList.innerHTML = '<p class="text-gray-500">Nenhuma notícia disponível.</p>';
-            }
-        });
-    }
-
-    function loadCalendar() {
-        const calendarRef = database.ref('calendario');
-        calendarRef.on('value', (snapshot) => {
-            calendarList.innerHTML = '';
-            if (snapshot.exists()) {
-                snapshot.forEach(childSnapshot => {
-                    const evento = childSnapshot.val();
-                    calendarList.innerHTML += `
-                        <div class="p-3 bg-gray-100 rounded">
-                            <p><strong>${evento.nome}</strong> - ${new Date(evento.data + 'T03:00:00Z').toLocaleDateString('pt-BR')}</p>
-                            <p class="text-sm text-gray-600">${evento.local || 'N/A'}</p>
-                        </div>
-                    `;
-                });
-            } else {
-                calendarList.innerHTML = '<p class="text-gray-500">Nenhum evento no calendário.</p>';
-            }
-        });
-    }
-
-    // --- Funções da Vitrine ---
-    function loadVitrine() {
-        const vitrineRef = database.ref('vitrine');
-        vitrineRef.on('value', (snapshot) => {
-            vitrineList.innerHTML = '';
-            if (snapshot.exists()) {
-                snapshot.forEach(childSnapshot => {
-                    const atividade = childSnapshot.val();
-                    vitrineList.innerHTML += `
-                        <div class="vitrine-item">
-                            <div class="vitrine-header">
-                                <strong>${atividade.autor}</strong>
-                                <span>${new Date(atividade.timestamp).toLocaleString('pt-BR')}</span>
-                            </div>
-                            <p>${atividade.descricao}</p>
-                            <div class="vitrine-actions">
-                                <button class="form-button" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">👍</button>
-                                <button class="form-button" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">💬</button>
-                            </div>
-                        </div>
-                    `;
-                });
-            } else {
-                vitrineList.innerHTML = '<p class="text-gray-500">Nenhuma atividade na vitrine.</p>';
-            }
-        });
     }
 
     // --- Funções Gerais ---
