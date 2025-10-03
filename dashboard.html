@@ -16,31 +16,23 @@
             transform: translateY(-5px);
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
         }
-        .news-card {
-            background-color: #f3f4f6; border-radius: 12px; padding: 1.5rem;
-            box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.1);
-        }
-        .comment-box {
-            border: 1px solid #e5e7eb; border-radius: 8px; padding: 1rem; margin-top: 1rem;
-        }
-        .comment-item {
-            padding: 0.5rem; border-bottom: 1px solid #e5e7eb;
-        }
-        .chart-container {
-            height: 300px; background: white; border-radius: 12px; padding: 1rem; box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.1);
-        }
-        .vitrine-item {
-            background: white; border-radius: 8px; padding: 1rem; margin-bottom: 1rem;
-            box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.1);
-        }
-        .vitrine-header {
+        .training-item {
+            padding: 0.75rem; border-radius: 8px;
             display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 0.5rem;
         }
-        .vitrine-actions {
-            margin-top: 0.5rem;
-            display: flex; gap: 0.5rem;
+        .status-agendado { background-color: #fef3c7; }
+        .status-realizado { background-color: #dcfce7; }
+        .modal {
+            display: none; position: fixed; z-index: 1000; left: 0; top: 0;
+            width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5);
+            justify-content: center; align-items: center;
         }
+        .modal-content {
+            background-color: #fefefe; margin: auto; padding: 2rem;
+            border: 1px solid #888; width: 80%; max-width: 500px;
+            border-radius: 12px;
+        }
+        .close-btn { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body class="dashboard-page">
@@ -58,18 +50,16 @@
     </header>
 
     <main class="dashboard-main" style="grid-template-columns: 1fr; max-width: 1400px;">
-        <!-- Container Geral da Visão do Professor -->
         <div id="professor-view" class="view">
-            <!-- VISTA 1: Hub de Atletas (Visão Macro) -->
             <div id="hub-sub-view">
-                <div class="section-header" style="align-items: flex-start;">
+                <div class="section-header">
                     <div>
                         <h2 class="text-3xl font-bold">Hub de Atletas</h2>
                         <p class="text-gray-500">Gestão e acompanhamento da sua equipa.</p>
                     </div>
                     <button id="show-add-athlete-form-btn" class="form-button" style="width: auto; padding: 0.75rem 1.5rem;">+ Adicionar Aluno</button>
                 </div>
-                <div id="add-athlete-container" class="form-container mb-8" style="display: none; max-width: 500px; margin-left: auto; margin-right: auto;">
+                <div id="add-athlete-container" class="form-container mb-8" style="display: none; max-width: 500px; margin: 0 auto;">
                      <h3 class="text-xl font-bold mb-4">Cadastrar Novo Aluno</h3>
                      <form id="add-athlete-form">
                          <input type="text" id="athlete-name" class="form-input" required placeholder="Nome do Aluno">
@@ -82,7 +72,6 @@
                 </div>
                 <div id="athlete-grid-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
             </div>
-            <!-- VISTA 2: Painel de Gestão Individual (Visão Micro, começa oculta) -->
             <div id="management-sub-view" style="display: none;">
                 <div class="section-header">
                     <button id="back-to-hub-btn" class="form-button" style="background: #6b7280; width: auto; padding: 0.5rem 1rem;">&larr; Voltar ao Hub</button>
@@ -102,29 +91,13 @@
                                     <option value="Fartlek">Fartlek</option>
                                     <option value="Tempo Run">Tempo Run (Ritmo)</option>
                                 </select>
-                                <textarea id="training-description" class="form-input" rows="4" placeholder="Descreva o treino." required></textarea>
+                                <textarea id="training-description" class="form-input" rows="4" placeholder="Descreva o treino. Ex: 10km em ritmo Z2 contínuo." required></textarea>
                                 <button type="submit" class="form-button">Agendar Treino</button>
                             </form>
                         </div>
                         <div class="athlete-card">
                             <h3 class="text-xl font-bold">Plano de Treino</h3>
                             <div id="training-plan-list" class="mt-4 space-y-3"></div>
-                        </div>
-                        <div class="athlete-card">
-                            <h3 class="text-xl font-bold">Provas Oficiais</h3>
-                            <form id="add-race-form" class="mt-4 space-y-4">
-                                <input type="text" id="race-name" class="form-input" required placeholder="Nome da Prova">
-                                <input type="date" id="race-date" class="form-input" required>
-                                <input type="text" id="race-result" class="form-input" placeholder="Resultado (ex: 00:22:30)">
-                                <button type="submit" class="form-button">Registrar Prova</button>
-                            </form>
-                            <div id="races-list" class="mt-4 space-y-3"></div>
-                        </div>
-                        <div class="athlete-card">
-                            <h3 class="text-xl font-bold">Gráfico de Desempenho</h3>
-                            <div class="chart-container" id="performance-chart">
-                                <p class="text-center text-gray-500">Carregando gráfico...</p>
-                            </div>
                         </div>
                     </div>
                     <div class="space-y-6">
@@ -138,17 +111,10 @@
                                 <button type="submit" class="form-button">Salvar Perfil</button>
                             </form>
                         </div>
-                        <div class="athlete-card">
-                            <h3 class="text-xl font-bold">Sugestões Inteligentes</h3>
-                            <div id="smart-suggestions" class="mt-4 space-y-3">
-                                <p class="text-gray-500">Analisando desempenho...</p>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>
         </div>
-        <!-- Container Geral da Visão do Atleta -->
         <div id="atleta-view" class="view">
              <div class="section-header">
                 <h2 class="text-3xl font-bold">Meu Painel</h2>
@@ -158,16 +124,6 @@
                     <div class="athlete-card">
                         <h3 class="text-xl font-bold">Treinos Agendados</h3>
                         <div id="my-training-plan-list" class="mt-4 space-y-3"></div>
-                    </div>
-                    <div class="athlete-card">
-                        <h3 class="text-xl font-bold">Minhas Provas</h3>
-                        <div id="my-races-list" class="mt-4 space-y-3"></div>
-                    </div>
-                    <div class="athlete-card">
-                        <h3 class="text-xl font-bold">Gráfico de Desempenho</h3>
-                        <div class="chart-container" id="my-performance-chart">
-                            <p class="text-center text-gray-500">Carregando gráfico...</p>
-                        </div>
                     </div>
                 </div>
                 <div class="space-y-6">
@@ -181,44 +137,27 @@
                             <button type="submit" class="form-button">Salvar Perfil</button>
                         </form>
                     </div>
-                    <div class="athlete-card">
-                        <h3 class="text-xl font-bold">Comentários da Equipe</h3>
-                        <div id="comments-section" class="mt-4 space-y-3">
-                            <textarea id="new-comment" class="form-input" rows="2" placeholder="Deixe seu comentário..."></textarea>
-                            <button type="button" id="post-comment-btn" class="form-button">Enviar Comentário</button>
-                            <div id="comments-list" class="comment-box mt-2"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <!-- Container Geral da Visão de Notícias -->
-        <div id="news-view" class="view">
-             <div class="section-header">
-                <h2 class="text-3xl font-bold">Notícias da Equipe</h2>
-             </div>
-             <div class="grid grid-cols-1 gap-6 mt-6">
-                <div class="news-card">
-                    <h3 class="text-xl font-bold">Últimas Notícias</h3>
-                    <div id="news-list" class="mt-4 space-y-3"></div>
-                </div>
-                <div class="news-card">
-                    <h3 class="text-xl font-bold">Calendário de Provas</h3>
-                    <div id="calendar-list" class="mt-4 space-y-3"></div>
-                </div>
-                <div class="news-card">
-                    <h3 class="text-xl font-bold">Vitrine da Equipe</h3>
-                    <div id="vitrine-list" class="mt-4 space-y-3"></div>
                 </div>
             </div>
         </div>
     </main>
 
-    <!-- SDKs do Firebase (v8) -->
+    <div id="feedback-modal" class="modal">
+        <div class="modal-content">
+            <span id="close-feedback-modal" class="close-btn">&times;</span>
+            <h3 class="text-xl font-bold mb-4">Feedback do Treino</h3>
+            <p id="feedback-training-details" class="mb-4"></p>
+            <div id="feedback-history" class="mb-4" style="max-height: 150px; overflow-y: auto; border: 1px solid #eee; padding: 8px; border-radius: 8px;"></div>
+            <form id="feedback-form">
+                <textarea id="feedback-text" class="form-input" rows="4" placeholder="Escreva seu feedback sobre este treino..." required></textarea>
+                <button type="submit" class="form-button mt-4">Enviar Feedback</button>
+            </form>
+        </div>
+    </div>
+
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     
-    <!-- Scripts da Aplicação -->
     <script src="js/config.js"></script>
     <script src="js/dashboard.js"></script>
 </body>
